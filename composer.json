@@ -1,27 +1,53 @@
 {
     "name": "csun-metalab/laravel-multiple-logs",
-    "description": "Composer package for Laravel 5 that adds a few additional log files as well as facades to write to them.",
+    "description": "Dedicated audit and authentication loggers, facades, and helpers for Laravel 12.",
     "type": "library",
     "license": "MIT",
     "authors": [
         {
             "name": "Matthew Fritz",
             "email": "mattf@burbankparanormal.com"
+        },
+        {
+            "name": "Luis  Guzman",
+            "email": "contact@luisjg.dev",
+            "role": "Maintainer"
         }
     ],
     "require": {
-        "php": ">=5.5.9"
+        "php": "^8.2",
+        "illuminate/log": "^12.0",
+        "illuminate/support": "^12.0",
+        "monolog/monolog": "^3.0"
     },
-    "minimum-stability": "stable",
+    "require-dev": {
+        "orchestra/testbench": "^10.0",
+        "phpunit/phpunit": "^11.5.3"
+    },
     "autoload": {
-        "classmap": [
-            "src/MultipleLogs/"
-        ],
+        "psr-4": {
+            "CSUNMetaLab\\MultipleLogs\\": "src/MultipleLogs/"
+        },
         "files": [
             "src/MultipleLogs/helpers.php"
-        ],
-        "psr-0": {
-            "CSUNMetaLab\\MultipleLogs\\": "src/MultipleLogs/"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "CSUNMetaLab\\MultipleLogs\\Tests\\": "tests/"
         }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "CSUNMetaLab\\MultipleLogs\\Providers\\LoggingServiceProvider"
+            ]
+        }
+    },
+    "scripts": {
+        "test": "phpunit"
+    },
+    "config": {
+        "sort-packages": true
     }
 }

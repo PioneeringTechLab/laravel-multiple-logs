@@ -2,17 +2,17 @@
 
 namespace CSUNMetaLab\MultipleLogs\Facades;
 
+use CSUNMetaLab\MultipleLogs\Loggers\AuditLogger;
 use Illuminate\Support\Facades\Facade;
 
 /**
- * @see \ETD\Logging\Loggers\AuditLogger
+ * @mixin AuditLogger
+ * @see AuditLogger
  */
 class AuditLog extends Facade
 {
-	/**
-     * Get the registered name of the component.
-     *
-     * @return string
-     */
-    protected static function getFacadeAccessor() { return 'audit_log'; }
+    protected static function getFacadeAccessor(): string
+    {
+        return 'audit_log';
+    }
 }

@@ -1,0 +1,63 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: PHP ${{ matrix.php }} / Laravel 12
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3', '8.4']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, dom, xml, xmlwriter, pdo_sqlite
+          tools: composer:v2
+          coverage: none
+      - run: composer validate --strict
+      - run: composer update --prefer-dist --no-interaction
+      - name: Check PHP syntax
+        run: find src tests -name '*.php' -print0 | xargs -0 -n1 php -l
+      - run: composer test
+
+  fresh-application:
+    name: Discovery and configuration cache
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, dom, xml, xmlwriter, pdo_sqlite
+          tools: composer:v2
+          coverage: none
+      - name: Install into a fresh Laravel 12 application
+        run: |
+          composer create-project laravel/laravel "$RUNNER_TEMP/multiple-logs-app" "^12.0" --prefer-dist --no-interaction
+          cd "$RUNNER_TEMP/multiple-logs-app"
+          composer config repositories.multiple-logs "{\"type\":\"path\",\"url\":\"$GITHUB_WORKSPACE\",\"options\":{\"versions\":{\"csun-metalab/laravel-multiple-logs\":\"2.0.0\"}}}"
+          composer require csun-metalab/laravel-multiple-logs:"^2.0" --prefer-dist --no-interaction
+      - name: Test discovery, publishing, and cached configuration
+        env:
+          MULTIPLE_LOGS_DRIVER: daily
+          MULTIPLE_LOGS_LEVEL: warning
+          MULTIPLE_LOGS_DAYS: '2'
+        run: |
+          cd "$RUNNER_TEMP/multiple-logs-app"
+          php artisan config:clear
+          sha256sum config/logging.php > native-logging.sha256
+          php artisan vendor:publish --tag=multiple-logs-config --force
+          sha256sum --check native-logging.sha256
+          php "$GITHUB_WORKSPACE/tests/smoke.php" "$PWD" uncached
+          php artisan config:cache
+          env -u MULTIPLE_LOGS_DRIVER -u MULTIPLE_LOGS_LEVEL -u MULTIPLE_LOGS_DAYS php "$GITHUB_WORKSPACE/tests/smoke.php" "$PWD" cached

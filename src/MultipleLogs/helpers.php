@@ -1,19 +1,18 @@
 <?php
 
-/**
- * Returns an AuditLogger instance.
- *
- * @return AuditLogger
- */
-function auditLogger() {
-	return app('audit_log');
+use CSUNMetaLab\MultipleLogs\Loggers\AuditLogger;
+use CSUNMetaLab\MultipleLogs\Loggers\AuthenticationLogger;
+
+if (! function_exists('auditLogger')) {
+    function auditLogger(): AuditLogger
+    {
+        return app('audit_log');
+    }
 }
 
-/**
- * Returns an AuthLogger instance.
- *
- * @return AuthLogger
- */
-function authLogger() {
-	return app('auth_log');
+if (! function_exists('authLogger')) {
+    function authLogger(): AuthenticationLogger
+    {
+        return app('auth_log');
+    }
 }

@@ -2,44 +2,63 @@
 
 namespace CSUNMetaLab\MultipleLogs\Loggers;
 
-use Illuminate\Log\Writer;
+use Illuminate\Log\Logger as IlluminateLogger;
+use InvalidArgumentException;
+use Monolog\Level;
 use Monolog\Logger as MonologLogger;
 
-class Logger extends Writer
+class Logger extends IlluminateLogger
 {
-	/**
-	 * Constructs a new Logger object.
-	 *
-	 * @param string $path The path to the log file
-	 * @param string $channel The channel that will be used for writing
-	 * @param string $logLevel Optional parameter to specify minimum log level
-	 */
-	public function __construct($path, $channel, $logLevel=null) {
-		parent::__construct(new MonologLogger($channel));
+    /**
+     * Keep the original path/channel/level constructor for custom loggers.
+     * A null level uses the package configuration.
+     */
+    public function __construct(string $path, string $channel, Level|string|int|null $logLevel = null)
+    {
+        $driver = config('multiple-logs.driver', 'single');
 
-		// use the default log level if we have not received a log level
-		if(empty($logLevel)) {
-			$logLevel = config('app.log_level');
-		}
+        if (! in_array($driver, ['single', 'daily', 'syslog', 'errorlog'], true)) {
+            throw new InvalidArgumentException(
+                'The multiple-logs.driver setting must be single, daily, syslog, or errorlog.'
+            );
+        }
 
-		// calculate the max days to store the daily files
-		$maxDays = config('logging.max_days', 7);
+        // Validate before LogManager can fall back to Laravel's emergency log.
+        $level = MonologLogger::toMonologLevel(
+            $logLevel ?? config('multiple-logs.level', 'debug')
+        );
 
-		// make a decision based on the kind of log to use
-		$type = config('app.log');
-		switch($type) {
-			case "single":
-				$this->useFiles($path, $logLevel);
-				break;
-			case "daily":
-				$this->useDailyFiles($path, $maxDays, $logLevel);
-				break;
-			case "syslog":
-				$this->useSyslog("laravel", $logLevel);
-				break;
-			case "errorlog":
-				$this->useErrorLog($logLevel);
-				break;
-		}
-	}
+        $configuration = [
+            'driver' => $driver,
+            'name' => $channel,
+            'path' => $path,
+            'level' => $level->toPsrLogLevel(),
+            'replace_placeholders' => true,
+            'permission' => config('multiple-logs.permission', 0644),
+            'locking' => config('multiple-logs.locking', false),
+        ];
+
+        if ($driver === 'daily') {
+            $days = filter_var(config('multiple-logs.days', 7), FILTER_VALIDATE_INT, [
+                'options' => ['min_range' => 0],
+            ]);
+
+            if ($days === false) {
+                throw new InvalidArgumentException(
+                    'The multiple-logs.days setting must be a non-negative integer.'
+                );
+            }
+
+            $configuration['days'] = $days;
+        }
+
+        $manager = app('log');
+        $logger = $manager->build($configuration);
+
+        // Reuse Laravel's handlers, formatting, processors, and event dispatcher.
+        // Unwrap the temporary Illuminate logger so each message emits one event.
+        parent::__construct($logger->getLogger(), $logger->getEventDispatcher());
+
+        $this->withContext($manager->sharedContext());
+    }
 }
