@@ -25,23 +25,9 @@ PioneeringTechLab does not rename either.
 
 ## Installation
 
-### Testing this unreleased checkout
+### The latest release
 
-In a Laravel 12 application, add a Composer path repository pointing to your
-local copy of this package. Replace the absolute path below with your own:
-
-```bash
-composer config repositories.multiple-logs '{"type":"path","url":"/absolute/path/to/laravel-multiple-logs","options":{"symlink":true,"versions":{"csun-metalab/laravel-multiple-logs":"2.0.0"}}}'
-composer require csun-metalab/laravel-multiple-logs:"^2.0"
-```
-
-The version override is local Composer metadata for testing; it does not create a
-Git tag or publish a release. A plain, unversioned require against Packagist may
-still install the legacy 1.x release.
-
-### Installing a published 2.x release
-
-After a 2.x release has been tagged and made available through Packagist:
+This package is published to Packagist and is installed through composer with the following command:
 
 ```bash
 composer require csun-metalab/laravel-multiple-logs:"^2.0"
